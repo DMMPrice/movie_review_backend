@@ -1,6 +1,7 @@
-const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 const User = require('../models/user');
 const emailVerification = require('../models/emailVerfication');
+const passwordResetToken = require('../models/passwordResetToken');
 const {isValidObjectId} = require("mongoose");
 const {generateMailTransporter, generateOTP} = require("../utils/mail");
 const {sendError} = require("../utils/helpers");
@@ -47,7 +48,7 @@ exports.verifyEmail = async (req, res) => {
     const {userID, OTP} = req.body;
     if (!isValidObjectId(userID)) return res.json({error: 'Invalid user'});
     const user = await User.findById(userID);
-    if (!user) return sendError(res, 'User not found');
+    if (!user) return sendError(res, 'User not found',404);
     if (user.isVerified) return sendError(res, 'User already verified');
     const token = await emailVerification.findOne({owner: userID});
     if (!token) return sendError(res, 'Token not found');
@@ -80,7 +81,7 @@ exports.resendEmailVerification = async (req, res) => {
         owner: userID,
     });
     if (alreadyHasToken)
-        return res.json({error: "Only after one hour you can request for another token!"});
+        return sendError(res,"Only after one hour you can request for another token!");
 
     let OTP = generateOTP();
 
@@ -104,5 +105,22 @@ exports.resendEmailVerification = async (req, res) => {
         })
     res.json({
         message: "New OTP has been sent to your registered email account.",
+    });
+};
+
+exports.forgetPassword = async (req,res)=>{
+    const {email}=req.body;
+    if (!email) return sendError(res,'email is missing!');
+    const user = await User.findOne({email});
+    if(!user) return sendError(res,'User not found',404);
+
+    const alreadyHasToken = await passwordResetToken.findOne({
+        owner: user._id,
+    });
+    if(alreadyHasToken)
+        return sendError(res,"Only after one hour you can request for another token!");
+    crypto.randomBytes(30, (err, buffer) => {
+        if (err) return console.log(err);
+        const bufferString = buffer.toString('hex');
     });
 }
