@@ -7,6 +7,7 @@ exports.generateRandomByte = ()=>{
         crypto.randomBytes(30, (err,buff) => {
             if (err) reject(err);
             const buffString = buff.toString('hex');
+            console.log(buffString);
             resolve(buffString);
         });
 })};

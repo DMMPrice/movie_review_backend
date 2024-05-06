@@ -4,7 +4,7 @@ const emailVerification = require('../models/emailVerfication');
 const passwordResetToken = require('../models/passwordResetToken');
 const {isValidObjectId} = require("mongoose");
 const {generateMailTransporter, generateOTP} = require("../utils/mail");
-const {sendError} = require("../utils/helpers");
+const {sendError, generateRandomByte} = require("../utils/helpers");
 
 exports.create = async (req, res) => {
     const {name, email, role, password} = req.body;
@@ -119,8 +119,21 @@ exports.forgetPassword = async (req,res)=>{
     });
     if(alreadyHasToken)
         return sendError(res,"Only after one hour you can request for another token!");
-    crypto.randomBytes(30, (err, buffer) => {
-        if (err) return console.log(err);
-        const bufferString = buffer.toString('hex');
+    const token=await generateRandomByte();
+    const newPasswordResetToken = await passwordResetToken({owner: user._id, token});
+    await newPasswordResetToken.save();
+    const resetPasswordUrl = `http://localhost:8000/api/user/reset-password/${token}&id=${user._id}`;
+    var transport = generateMailTransporter();
+    await transport.sendMail({
+        from: 'ghoshaniruddha2003@gmail.com',
+        to: user.email,
+        subject: 'Email Verification',
+        html: `
+                    <p>Hi ${user.name}</p>
+                    <h1>Reset your password by clicking <a href="${resetPasswordUrl}">here</a></h1>
+                    
+                    `,
     });
+
+    res.json({message: 'Password reset link sent to your email address'});
 }
