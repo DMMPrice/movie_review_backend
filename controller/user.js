@@ -1,9 +1,11 @@
+const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const User = require('../models/user');
 const emailVerification = require('../models/emailVerfication');
+const passwordResetToken = require('../models/passwordResetToken');
 const {isValidObjectId} = require("mongoose");
 const {generateOTP, generateMailTransporter} = require("../utils/mail");
-const {sendError} = require("../utils/helper");
+const {sendError, generateRandomByte} = require("../utils/helper");
 
 exports.create = async (req, res) => {
     const {name, email, role, password} = req.body;
@@ -49,7 +51,6 @@ exports.create = async (req, res) => {
         })
     res.status(200).json({message: "Please verify your email address. OTP sent to your email address."});
 }
-
 exports.verifyEmail = async (req, res) => {
     const {userID, OTP} = req.body;
     if (!isValidObjectId(userID)) return sendError(res,'Invalid user');
@@ -111,5 +112,31 @@ exports.resendEmailVerificationToken = async (req, res) => {
         })
     res.json({
         message: "New OTP has been sent to your registered email account.",
+    });
+}
+exports.forgetPassword = async (req, res) => {
+    const {email} = req.body;
+    if(!email) return sendError(res, "Email is missing");
+    const user = await User.findOne({email});
+    if (!user) return sendError(res, "User not found",404);
+    const alreadyHasToken=await passwordResetToken.findOne({owner: user._id});
+    if(alreadyHasToken) return sendError(res,"Only after one hour you can request for another token!");
+    const token = await generateRandomByte();
+    const newPasswordResetToken = await passwordResetToken({
+        owner: user._id,
+        token
+    });
+    await newPasswordResetToken.save();
+    const resetPasswordLink = `http://localhost:3000/reset-password?token=${token}&id=${user._id}`;
+    var transport = generateMailTransporter();
+    await transport.sendMail(
+        {
+            from: 'ghoshaniruddha2003@gmail.com',
+            to: user.email,
+            subject: 'Email Verification',
+            html: `<a href="${resetPasswordLink}">Click here to reset your password</a>`
+        })
+    res.json({
+        message: "Link sent to your email!",
     });
 }
