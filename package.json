@@ -1,5 +1,5 @@
 {
-  "name": "movie_review_backend",
+  "name": "movie_review_backend-d5b4f2dc5a791bba7a49706e93a58a2e972db501",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
@@ -15,7 +15,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-validator": "^7.0.1",
-    "mongodb": "^6.5.0",
+    "mongodb": "^6.6.0",
     "mongoose": "^8.3.3",
     "nodemailer": "^6.9.13",
     "nodemon": "^3.1.0"
